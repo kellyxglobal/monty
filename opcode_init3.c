@@ -1,149 +1,113 @@
 #include "monty.h"
 
 /**
- * _div - divides the second element by the top element of the stack
- *
- * @doubly: head of the linked list
- * @cline: line number;
- * Return: no return
- */
-void _div(stack_t **doubly, unsigned int cline)
+ * opcode_mod - opcode for modulus (%)
+ * @stack: pointer to pointer to first node
+ * @line_number: number of line
+ **/
+void opcode_mod(__attribute__((unused))stack_t **stack,
+	__attribute__((unused))unsigned int line_number)
 {
-	int m = 0;
-	stack_t *aux = NULL;
+	int n;
+	int m;
 
-	aux = *doubly;
-
-	for (; aux != NULL; aux = aux->next, m++)
-		;
-
-	if (m < 2)
+	if (!get_dnodeint_at_index(*stack, 1))
 	{
-		dprintf(2, "L%u: can't div, stack too short\n", cline);
-		free_vglo();
+		dprintf(STDERR_FILENO, ERR_MOD, data()->line_number);
+		free_data(1);
 		exit(EXIT_FAILURE);
 	}
-
-	if ((*doubly)->n == 0)
+	n = pop(stack);
+	m = pop(stack);
+	if (!n)
 	{
-		dprintf(2, "L%u: division by zero\n", cline);
-		free_vglo();
+		dprintf(STDERR_FILENO, ERR_ZERO, data()->line_number);
+		free_data(1);
 		exit(EXIT_FAILURE);
 	}
-
-	aux = (*doubly)->next;
-	aux->n /= (*doubly)->n;
-	_pop(doubly, cline);
+	insert_dnodeint_at_index(stack, 0, m % n);
 }
 
 /**
- * _mul - multiplies the top element to the second top element of the stack
- *
- * @doubly: head of the linked list
- * @cline: line number;
- * Return: no return
- */
-void _mul(stack_t **doubly, unsigned int cline)
+ * opcode_pchar - opcode for modulus (%)
+ * @stack: pointer to pointer to first node
+ * @line_number: number of line
+ **/
+void opcode_pchar(__attribute__((unused))stack_t **stack,
+	__attribute__((unused))unsigned int line_number)
 {
-	int m = 0;
-	stack_t *aux = NULL;
+	int n;
 
-	aux = *doubly;
-
-	for (; aux != NULL; aux = aux->next, m++)
-		;
-
-	if (m < 2)
+	if (!get_dnodeint_at_index(*stack, 0))
 	{
-		dprintf(2, "L%u: can't mul, stack too short\n", cline);
-		free_vglo();
+		dprintf(STDERR_FILENO, ERR_PCHAR, data()->line_number);
+		free_data(1);
 		exit(EXIT_FAILURE);
 	}
-
-	aux = (*doubly)->next;
-	aux->n *= (*doubly)->n;
-	_pop(doubly, cline);
+	n = peek(stack);
+	if (n < 0 || n > 127)
+	{
+		dprintf(STDERR_FILENO, ERR_NOCHAR, data()->line_number);
+		free_data(1);
+		exit(EXIT_FAILURE);
+	}
+	printf("%c\n", n);
 }
 
 /**
- * _mod - computes the rest of the division of the second element
- * by the top element of the stack
- *
- * @doubly: head of the linked list
- * @cline: line number;
- * Return: no return
- */
-void _mod(stack_t **doubly, unsigned int cline)
+ * opcode_str - prints str
+ * @stack: pointer to pointer to first node
+ * @line_number: number of line
+ **/
+void opcode_pstr(stack_t **stack,
+	__attribute__((unused))unsigned int line_number)
 {
-	int m = 0;
-	stack_t *aux = NULL;
+	stack_t *node = get_dnodeint_at_index(*stack, 0);
 
-	aux = *doubly;
-
-	for (; aux != NULL; aux = aux->next, m++)
-		;
-
-	if (m < 2)
+	while (node && node->n > 0 && node->n < 128)
 	{
-		dprintf(2, "L%u: can't mod, stack too short\n", cline);
-		free_vglo();
-		exit(EXIT_FAILURE);
+		printf("%c", node->n);
+		node = node->next;
 	}
-
-	if ((*doubly)->n == 0)
-	{
-		dprintf(2, "L%u: division by zero\n", cline);
-		free_vglo();
-		exit(EXIT_FAILURE);
-	}
-
-	aux = (*doubly)->next;
-	aux->n %= (*doubly)->n;
-	_pop(doubly, cline);
-}
-/**
- * _pchar - print the char value of the first element
- *
- * @doubly: head of the linked list
- * @cline: line number;
- * Return: no return
- */
-void _pchar(stack_t **doubly, unsigned int cline)
-{
-	if (doubly == NULL || *doubly == NULL)
-	{
-		dprintf(2, "L%u: can't pchar, stack empty\n", cline);
-		free_vglo();
-		exit(EXIT_FAILURE);
-	}
-	if ((*doubly)->n < 0 || (*doubly)->n >= 128)
-	{
-		dprintf(2, "L%u: can't pchar, value out of range\n", cline);
-		free_vglo();
-		exit(EXIT_FAILURE);
-	}
-	printf("%c\n", (*doubly)->n);
-}
-
-/**
- * _pstr - prints the string of the stack
- *
- * @doubly: head of the linked list
- * @cline: line number;
- * Return: no return
- */
-void _pstr(stack_t **doubly, unsigned int cline)
-{
-	stack_t *aux;
-	(void)cline;
-
-	aux = *doubly;
-
-	while (aux && aux->n > 0 && aux->n < 128)
-	{
-		printf("%c", aux->n);
-		aux = aux->next;
-	}
-
 	printf("\n");
+}
+
+/**
+ * opcode_rotl - rotates the stack (head) to end
+ * @stack: pointer to pointer to first node
+ * @line_number: number of line
+ **/
+void opcode_rotl(stack_t **stack,
+	__attribute__((unused))unsigned int line_number)
+{
+	int n;
+
+	if (!get_dnodeint_at_index(*stack, 1))
+		return;
+
+	n = pop(stack);
+
+	add_dnodeint_end(stack, n);
+}
+
+/**
+ * opcode_rotr - rotates the end of stack to head
+ * @stack: pointer to pointer to first node
+ * @line_number: number of line
+ **/
+void opcode_rotr(stack_t **stack,
+	__attribute__((unused))unsigned int line_number)
+{
+	int len = dlistint_len(*stack);
+	int n;
+	stack_t *node;
+
+	if (len < 2)
+		return;
+
+	node = get_dnodeint_at_index(*stack, len - 1);
+	n = node->n;
+	delete_dnodeint_at_index(stack, len - 1);
+
+	add_dnodeint(stack, n);
 }
